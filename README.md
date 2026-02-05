@@ -1,0 +1,2 @@
+Project state: VERY ROUGH!
+Currently working on: I am covering chapter 5 in Beej's Guide to Network Programming, which introduces all of the functions like socket() and bind() that I'll need to understand for my implementation.
