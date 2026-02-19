@@ -1,4 +1,14 @@
-**Project state:** VERY ROUGH!
+### Project Checklist
+- [x] Basic TCP server
+- [x] Basic TCP client
+- [ ] Clean up: Use thread() instead of fork()
+- [ ] Clean up: Define and implement robust error handling
+- [ ] Clean up: Finish function specs and clean up comments
+- [ ] Concurrency: implement threadpool
+- [ ] HTTP: implement http parsing and responses
+- [ ] TLS/HTTPS: make http secure
+- [ ] Testing: write unit tests throughout development
+- [ ] Clean up and finish notes to be more helpful for readers 
 
 
-**Currently working on:** I am covering chapter 5 in Beej's Guide to Network Programming, which introduces all of the functions like socket() and bind() that I'll need to understand for my implementation.
+**Currently working on:** Switching from fork() to thread()
