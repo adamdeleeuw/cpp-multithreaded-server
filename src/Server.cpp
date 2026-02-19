@@ -14,7 +14,7 @@ Server::Server() {
  * @result Closes server and cleans up anything that must be cleaned.
  */
 Server::~Server() {
-    if (serverinfo != NULL) freeaddrinfo(serverinfo);
+    if (serverinfo != nullptr) freeaddrinfo(serverinfo);
 
     if (listenSocket_fd != SOCK_ERR) close(listenSocket_fd);
     if (clientSocket_fd != SOCK_ERR) close(clientSocket_fd);
@@ -92,6 +92,7 @@ void Server::Bind() {
     } 
 
     freeaddrinfo(serverinfo); // no longer need this data
+    serverinfo = nullptr;
 
     if (cr == nullptr) {
         throw runtime_error("server: bind failed for all results");
@@ -103,7 +104,7 @@ void Server::Listen() {
         throw runtime_error("sever: listen failed");
     }
 
-    cout << "server: listening for connections...\n" << endl;
+    cout << "server: listening for connections..." << endl;
 }
 
 void Server::Accept() {
@@ -125,13 +126,19 @@ void Server::Accept() {
         // note: will change to use thread() instead of fork() for modern C++
         if (!fork()) { // child process
             close(listenSocket_fd); // child does not need the listener
+            listenSocket_fd = SOCK_ERR;
+
             if (send(clientSocket_fd, "Hello, world!", 13, 0) == SEND_ERR) {
                 perror("server: send");
             }
+
             close(clientSocket_fd);
+            clientSocket_fd = SOCK_ERR;
+
             exit(0); // child must exit
         }
         close(clientSocket_fd); // parent no longer needs child
+        clientSocket_fd = SOCK_ERR;
     }
 }
 
