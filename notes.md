@@ -34,7 +34,7 @@ The key: **Data Encapsulation!**
 - **The Flow:** Data is wrapped in a header (and sometimes footer) by one protocol, then that entire package is wrapped by the next layer (UDP -> IP -> Ethernet).
 - **The Receiver:** The hardware strips the Ethernet header, the kernel strips IP/UDP, and the application finally gets the raw data.
 
-## The Layered Network Model (ISO/OSI) ##
+## The Layered Network Model (The ISO's Open Systems Intercommunication (OSI) Model) ##
 A universal language for networking to ensure different systems can talk to each other.
 
 
@@ -134,3 +134,114 @@ struct addrinfo {
 Lowkey tired of taking notes!
 
 I think it's fine to refer to Beej's guide for technical implementation info, since its well organized and such. Will keep the rest of this file open for notes about things that I find very important (if I feel up for it). Even just trying to make this doc look nice felt like a waste of time. Oh well....
+
+# Order of system calls (Beej's Ch5)
+
+TO-DO: Add more info about params and purpose for each syscall, explain how it relates to the structs
+
+For my HTTP server the order of syscalls is as follows:
+```
+getaddrinfo();
+socket();
+bind();
+listen();
+accept();
+// send() and recv()
+```
+
+## 1. getaddrinfo()
+
+```
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
+int getaddrinfo(const char *node,   // e.g. "www.example.com" or IP
+                const char *service,  // e.g. "http" or port number
+                const struct addrinfo *hints,
+                struct addrinfo **res);
+```
+
+## 2. socket()
+
+```
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int socket(int domain, int type, int protocol); 
+```
+
+## 3. bind()
+
+```
+#include <sys/types.h>
+#include <sys/socket.h>
+
+// lose the pesky "Address already in use" error message
+int yes = 1;
+setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+
+// do bind
+int bind(int sockfd, struct sockaddr *my_addr, int addrlen);
+```
+
+`struct sockaddr* my_addr` contains information about your address, namely, port and IP address
+
+## 4. listen()
+
+```
+int listen(int sockfd, int backlog); 
+```
+
+`backlog` is the allowed number of connections on the incoming queue
+
+## 5. accept()
+
+```
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen); 
+```
+
+`struct sockaddr *addr` a pointer to a local struct sockaddr_storage. This is where the information about the incoming connection will go (and with it you can determine which host is calling you from which port).
+
+## 6. send() and recv()
+ 
+**NOTE:** these are blocking calls
+
+```
+int send(int sockfd, const void *msg, int len, int flags); 
+
+int recv(int sockfd, void *buf, int len, int flags);
+```
+
+## 7. close() and shutdown()
+
+```
+close(sockfd); 
+
+int shutdown(int sockfd, int how); 
+```
+
+## 8. getpeername() and gethostname()
+
+```
+#include <sys/socket.h>
+
+int getpeername(int sockfd, struct sockaddr *addr, int *addrlen);
+```
+
+```
+#include <unistd.h>
+
+/** Descr
+  * @param...
+  * @return
+  */
+int gethostname(char *hostname, size_t size); 
+```
+
+Important non memeber functions:
+
+`void sigchld_handler(int s)` and `void* get_in_addr(struct sockaddr* sa)`
