@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <unistd.h>
 
+/* non-member functions */
 void sigchld_handler(int s);
 void* get_in_addr(struct sockaddr* sa);
 
