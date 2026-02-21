@@ -1,7 +1,7 @@
 ### Project Checklist
 - [x] Basic TCP server
 - [x] Basic TCP client
-- [ ] Clean up: Use thread() instead of fork()
+- [x] Clean up: Use thread() instead of fork()
 - [ ] Clean up: Define and implement robust error handling
 - [ ] Clean up: Finish function specs and clean up comments
 - [ ] Concurrency: implement threadpool
