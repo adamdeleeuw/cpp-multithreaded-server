@@ -245,3 +245,27 @@ int gethostname(char *hostname, size_t size);
 Important non memeber functions:
 
 `void sigchld_handler(int s)` and `void* get_in_addr(struct sockaddr* sa)`
+
+
+# Concurrency
+
+## fork() vs. thread()
+- fork(): creates a new child process (a copy of the parent process)
+- thread(): creates a thread of execution within the SAME process
+
+Analogy from Claude: a fork is like photocopying an entire book and giving it to somone to read, whereas a thread is like two people reading different chapters of the same book simultaneously
+
+Therefore, thread is much more memory efficient because it requires less overhead (roughly goes from MBs to KBs) and execution is faster (roughly ms to mircoseconds)
+
+Another big benefit is that since threads share memory, it's perfect for a server that must manage shared resources (cough cough will eb very helpful when I implement the thread pool)
+
+In summary, for this project threads are better than forks because:
+- they are more time and space efficient
+- naturally work well for managing shared resources
+- safer (RAII, smart ptrs, destructors)
+
+The best resource I found for concurrent C++ programming is [here](https://www.bogotobogo.com/cplusplus/files/CplusplusConcurrencyInAction_PracticalMultithreading.pdf)
+
+Wonderfully breaks down pretty much everything you need to know about conurrent C++, at least enough to do this project!
+
+I'd recommend by starting with section 1.4, then continue reading into chap 2,3,4 and so on as you need.
