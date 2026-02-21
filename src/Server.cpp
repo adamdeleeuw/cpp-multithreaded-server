@@ -16,15 +16,14 @@ Server::Server() {
 Server::~Server() {
     if (serverinfo != nullptr) freeaddrinfo(serverinfo);
 
+    // client thread close their own sockets
     if (listenSocket_fd != SOCK_ERR) close(listenSocket_fd);
-    if (clientSocket_fd != SOCK_ERR) close(clientSocket_fd);
 }
 
 /**
  * @result starts 
  */
 void Server::Run() {
-    prepareForAccept();
     Accept(); // call main loop to wait for and handle incoming connections
 }
 
@@ -44,17 +43,6 @@ void Server::Setup() {
 
     Bind();   // binds this listening socket to the first result of addrinfo we can
     Listen(); // listen on the binded port
-}
-
-// Need to learn more about sigaction
-void Server::prepareForAccept() {
-    sa.sa_handler = sigchld_handler; // reap zombie processes (remove terminated child processes)
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
-
-    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-        throw runtime_error("sigaction");
-    }
 }
 
 /** 
@@ -122,36 +110,20 @@ void Server::Accept() {
         inet_ntop(client_adr.ss_family, get_in_addr((struct sockaddr*)&client_adr), s, sizeof(s));
         cout << "server: got connection from " << s << endl;
 
-        // need to understand this better
-        // note: will change to use thread() instead of fork() for modern C++
-        if (!fork()) { // child process
-            close(listenSocket_fd); // child does not need the listener
-            listenSocket_fd = SOCK_ERR;
-
-            if (send(clientSocket_fd, "Hello, world!", 13, 0) == SEND_ERR) {
-                perror("server: send");
-            }
-
-            close(clientSocket_fd);
-            clientSocket_fd = SOCK_ERR;
-
-            exit(0); // child must exit
-        }
-        close(clientSocket_fd); // parent no longer needs child
-        clientSocket_fd = SOCK_ERR;
+        thread clientThread(&Server::handleClient, this, clientSocket_fd);
+        clientThread.detach(); // let the thread run, will use join later with thread pool
     }
 }
 
-/* Non-member functions */
+void Server::handleClient(int csocket_fd) {
+    if(send(csocket_fd, "Hello World!\n", 13, 0) == SEND_ERR) {
+        perror("sever: send");
+    }
 
-// Need to learn more about this
-void sigchld_handler(int s) { // NOTE: non-memeber function
-    (void)s;
-
-    int saved_errno = errno; // save errno in case watipid() overwrites it
-    while(waitpid(-1, NULL, WNOHANG) > 0);
-    errno = saved_errno;
+    close(csocket_fd);
 }
+
+/* Non-member functions */
 
 // Need to learn more about this
 void* get_in_addr(struct sockaddr* sa) {

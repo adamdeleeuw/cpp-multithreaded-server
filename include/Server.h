@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <unistd.h>
+#include <thread>
 
 /* non-member functions */
 void sigchld_handler(int s);
@@ -37,7 +38,6 @@ class Server {
         struct addrinfo hints;              // New addrinfo struct called 'hints' on stack
         struct addrinfo* serverinfo = NULL; // Pointer to the results from getaddrinfo() call
         struct sockaddr_storage client_adr; // connector's address info
-        struct sigaction sa;
         socklen_t sin_size;
         char s[INET6_ADDRSTRLEN];
         int status;
@@ -45,11 +45,11 @@ class Server {
 
         /* Helper functions */
         void Setup();
-        void prepareForAccept();
         void setaddrinfo();
         void Bind();
         void Listen();
         void Accept();
+        void handleClient(int csocket_fd);
     public:
         Server();            // Constructor
         ~Server();           // Destructor
