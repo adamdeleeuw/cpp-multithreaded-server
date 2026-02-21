@@ -1,22 +1,39 @@
 #include "../include/Client.h"
 using namespace std;
 
+/**
+ * Default constructor: constructs a new TCP client instance.
+ * @result Sets up a new client and initiates connection to server
+ */
 Client::Client() {
     Setup();
     Run();
 }
 
+/**
+ * Destructor
+ * @result Closes socket and cleans up address info data.
+ */
 Client::~Client() {
     if (serverinfo != NULL) freeaddrinfo(serverinfo);
     if (socket_fd != SOCK_ERR) close(socket_fd);
 }
 
+/**
+ * Client "play button".
+ * @result Initiates connection to server
+ */
 void Client::Run() {
     Connect();
 }
 
 /* Private helper functions */
 
+/**
+ * Sets necessary address info and retrieves server details.
+ * @result Populates serverinfo with available hosts matching the specified port.
+ * @throws If getaddrinfo() fails
+ */
 void Client::Setup() {
     setaddrinfo();
 
@@ -26,6 +43,10 @@ void Client::Setup() {
     }
 }
 
+/**
+ * Initializes address info hints structure with default TCP settings.
+ * @result Fills hints struct for IPvX (4/6 - either or) TCP stream socket
+ */
 void Client::setaddrinfo() {
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
@@ -34,7 +55,9 @@ void Client::setaddrinfo() {
 }
 
 /**
- * @result looks for suitable hosts awating connection, and makes a connection if possible.
+ * Looks for a suitable server to connect to from the serverinfo list.
+ * @result Creates a socket and connects to the first reachable server. Gets and displays the server adr.
+ * @throws If no connection can be made to any hosts in serverinfo.
  */
 void Client::Connect() {
     cout << "Looking for available hosts..." << endl;
@@ -76,6 +99,10 @@ void Client::Connect() {
     Receive();
 }  
 
+/**
+ * Receives data from server and displays it.
+ * @result Reads message from server socket, prints it, then closes and exits (kills client process)
+ */
 void Client::Receive() {
     nbytes = recv(socket_fd, buf, MAX_DATASIZE, 0);
     if (nbytes == RECV_ERR) {
@@ -100,6 +127,11 @@ void Client::Receive() {
 
 /* Non-member functions */
 
+/**
+ * Gets the IP address ptr from a sockaddr struct.
+ * @param sa Ptr to a sockaddr struct
+ * @return Ptr to the sin_addr (IPv4) or sin6_addr (IPv6) field
+ */
 void* get_in_addr(struct sockaddr* sa) {
     if (sa->sa_family == AF_INET) {
         return &(((struct sockaddr_in*)sa)->sin_addr);
