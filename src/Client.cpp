@@ -5,7 +5,7 @@ using namespace std;
  * Default constructor: constructs a new TCP client instance.
  * @result Sets up a new client and initiates connection to server
  */
-Client::Client() {
+Client::Client() : host(IP), serverinfo(nullptr), socket_fd(SOCK_ERR) {
     Setup();
     Run();
 }

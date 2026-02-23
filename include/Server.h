@@ -26,17 +26,14 @@
 #include <thread>
 
 /* non-member functions */
-void sigchld_handler(int s);
 void* get_in_addr(struct sockaddr* sa);
 
 class Server {
     private:
-        // init socket fd's and serverinfo in case error is thrown and destructor is call
-
-        int listenSocket_fd = -1;           // holds the socket descriptor of a stream socket
-        int clientSocket_fd = -1;           // connector's socket descriptor
+        int listenSocket_fd;                // listener's socket descriptor
+        int clientSocket_fd;                // connector's socket descriptor
         struct addrinfo hints;              // New addrinfo struct called 'hints' on stack
-        struct addrinfo* serverinfo = NULL; // Pointer to the results from getaddrinfo() call
+        struct addrinfo* serverinfo;        // Pointer to the results from getaddrinfo() call
         struct sockaddr_storage client_adr; // connector's address info
         socklen_t sin_size;
         char s[INET6_ADDRSTRLEN];
@@ -51,9 +48,9 @@ class Server {
         void Accept();
         void handleClient(int csocket_fd);
     public:
-        Server();            // Constructor
-        ~Server();           // Destructor
-        void Run();          // Runs the server
+        Server();
+        ~Server();
+        void Run();
 };
 
 #endif

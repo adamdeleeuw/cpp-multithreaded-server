@@ -5,7 +5,7 @@ using namespace std;
  * Default constructor: constructs a new TCP server instance.
  * @result Sets up a new server
  */
-Server::Server() {
+Server::Server() : serverinfo(nullptr), listenSocket_fd(SOCK_ERR), clientSocket_fd(SOCK_ERR) {
     Setup();
 }
 
@@ -15,9 +15,8 @@ Server::Server() {
  */
 Server::~Server() {
     if (serverinfo != nullptr) freeaddrinfo(serverinfo);
-
-    // client thread close their own sockets
     if (listenSocket_fd != SOCK_ERR) close(listenSocket_fd);
+    // client threads close their own sockets
 }
 
 /**
@@ -33,7 +32,8 @@ void Server::Run() {
 
 /** 
  * Sets data, creates a listening stream socket, binds it, and listens on the binded port.
- * @result The server is prepared to run
+ * @result The server is prepared to run.
+ * @throws If getaddrinfo() fails
  */
 void Server::Setup() {
     setaddrinfo();
@@ -47,9 +47,9 @@ void Server::Setup() {
     Listen(); // listen on the binded port
 }
 
-/** 
- * Sets necessary addrinfo.
- * @result Fills addrinfo struct
+/**
+ * Initializes address info hints structure with default TCP settings.
+ * @result Fills hints struct for IPvX (4/6 - either or) TCP stream socket
  */
 void Server::setaddrinfo() {
     memset(&hints, 0, sizeof(hints)); // clear struct to ensure its free
