@@ -2,33 +2,35 @@
 using namespace std;
 
 /**
- * Default constructor: constructs a new TCP server instance.
- * @result Sets up a new server
+ * @result Sets up a new server (creates a new TCP server instance)
  */
-Server::Server() : serverinfo(nullptr), listenSocket_fd(SOCK_ERR), clientSocket_fd(SOCK_ERR) {
-    Setup();
+Server::Server() : serverinfo(nullptr), listenSocket_fd(SOCK_ERR), running(false) {
+    try {
+        Setup();
+    } catch (const SetupException&) {
+        if (serverinfo) freeaddrinfo(serverinfo);
+        throw;
+    }
 }
 
 /**
- * Desctructor
  * @result Closes listening socket and cleans up anything leftover data.
  */
 Server::~Server() {
+    running = false;
     if (serverinfo != nullptr) freeaddrinfo(serverinfo);
     if (listenSocket_fd != SOCK_ERR) close(listenSocket_fd);
     // client threads close their own sockets
 }
 
 /**
- * Server "play button".
  * @result Starts server (allows connections to be made)
  */
 void Server::Run() {
-    Accept(); // call main loop to wait for and handle incoming connections
+    running = true;
+    Accept();
 }
 
-
-/* Private helper functions */
 
 /** 
  * Sets data, creates a listening stream socket, binds it, and listens on the binded port.
@@ -38,13 +40,13 @@ void Server::Run() {
 void Server::Setup() {
     setaddrinfo();
 
-    status = getaddrinfo(NULL, PORT, &hints, &serverinfo); // get all required info
+    int status = getaddrinfo(NULL, PORT, &hints, &serverinfo); // get all required info
     if (status != 0) {
-        throw runtime_error("getaddrinfo() errror: " + string(gai_strerror(status)));
+        throw SetupException("getaddrinfo() errror: " + string(gai_strerror(status)));
     }
 
-    Bind();   // binds this listening socket to the first result of addrinfo we can
-    Listen(); // listen on the binded port
+    Bind();
+    Listen();
 }
 
 /**
@@ -65,22 +67,28 @@ void Server::setaddrinfo() {
  */
 void Server::Bind() {
     struct addrinfo* cr; // current result in the linked list of addrinfos
+    int yes = 1;
 
     // iterate through the result of getaddrinfo and bind to the first one we can
     for (cr = serverinfo; cr != nullptr; cr = cr->ai_next) {
         listenSocket_fd = socket(cr->ai_family, cr->ai_socktype, cr->ai_protocol);
         if (listenSocket_fd == SOCK_ERR) {
             perror("server: socket");
-            continue; // curr result failed socket(), try next
+            continue;
         }
 
-        if ((setsockopt(listenSocket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)))) {
-            throw runtime_error("setsockopt() error");
+        if ((setsockopt(listenSocket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int))) < 0) {
+            perror("setsockopt err");
+            close(listenSocket_fd);
+            listenSocket_fd = SOCK_ERR;
+            continue;
         }
 
         if ((bind(listenSocket_fd, cr->ai_addr, cr->ai_addrlen)) == BIND_ERR) {
             perror("server: bind");
-            continue; // curr result failed to bind, try next
+            close(listenSocket_fd);
+            listenSocket_fd = SOCK_ERR; // maybe turn this close + set logic into a helper
+            continue;
         }
 
         break;
@@ -90,7 +98,7 @@ void Server::Bind() {
     serverinfo = nullptr;
 
     if (cr == nullptr) {
-        throw runtime_error("server: bind failed for all results");
+        throw SetupException("server: bind failed for all results");
     }
 }
 
@@ -100,7 +108,7 @@ void Server::Bind() {
  */
 void Server::Listen() {
     if ((listen(listenSocket_fd, BACKLOG)) == LISTEN_ERR) {
-        throw runtime_error("sever: listen failed");
+        throw SetupException("sever: listen failed");
     }
 
     cout << "server: listening for connections..." << endl;
@@ -113,14 +121,17 @@ void Server::Listen() {
 void Server::Accept() {
     cout << "server: waiting for connections..." << endl;
     
-    for (;;) {
-        sin_size = sizeof(client_adr);
+    while (running) {
+        struct sockaddr_storage client_adr;
+        socklen_t sin_size = sizeof(client_adr);
         int clientSocket_fd = accept(listenSocket_fd, (struct sockaddr*)&client_adr, &sin_size);
 
         if (clientSocket_fd == SOCK_ERR) {
             perror("server: accept");
             continue;
         }
+
+        char s[INET6_ADDRSTRLEN];
 
         // converts network address structure to a string of characters
         inet_ntop(client_adr.ss_family, get_in_addr((struct sockaddr*)&client_adr), s, sizeof(s));

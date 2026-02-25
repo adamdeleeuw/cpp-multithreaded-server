@@ -13,6 +13,7 @@
 #define NO_MORE_SENDS       1
 #define NO_MORE_REC_OR_SEND 2
 
+#include "server_exceptions.h"
 #include <iostream>
 #include <string.h>
 #include <netdb.h>
@@ -24,23 +25,19 @@
 #include <errno.h>
 #include <unistd.h>
 #include <thread>
+#include <atomic>
 
-/* non-member functions */
+using namespace std;
+
 void* get_in_addr(struct sockaddr* sa);
 
 class Server {
     private:
         int listenSocket_fd;                // listener's socket descriptor
-        int clientSocket_fd;                // connector's socket descriptor
         struct addrinfo hints;              // New addrinfo struct called 'hints' on stack
         struct addrinfo* serverinfo;        // Pointer to the results from getaddrinfo() call
-        struct sockaddr_storage client_adr; // connector's address info
-        socklen_t sin_size;
-        char s[INET6_ADDRSTRLEN];
-        int status;
-        int yes = -1;
+        atomic<bool> running;
 
-        /* Helper functions */
         void Setup();
         void setaddrinfo();
         void Bind();
