@@ -103,7 +103,7 @@ void Server::Bind() {
 }
 
 /**
- * Listens for incoming client connections.
+ * @result Listens for incoming client connections.
  * @throws If listening fails
  */
 void Server::Listen() {
@@ -115,7 +115,6 @@ void Server::Listen() {
 }
 
 /**
- * Performs the main "wait and accept when possible" loop.
  * @result Waits for incoming client connections. If one is found, it is accepted then handled.
  */
 void Server::Accept() {
@@ -137,31 +136,56 @@ void Server::Accept() {
         inet_ntop(client_adr.ss_family, get_in_addr((struct sockaddr*)&client_adr), s, sizeof(s));
         cout << "server: got connection from " << s << endl;
 
-        thread clientThread(&Server::handleClient, this, clientSocket_fd);
+        thread clientThread([this, clientSocket_fd]() {
+            OpResult result = handleClient(clientSocket_fd);
+
+            switch (result) {
+                case OpResult::FAILURE:
+                    perror("server: client handler failed to send data");
+                    break;
+                case OpResult::PARTIAL_SEND:
+                    perror("server: incomplete data sent to client");
+                    break;
+                case OpResult::CONNECTION_CLOSED:
+                    perror("server: connection closed by client");
+                case OpResult::SUCCESS: break;
+            }
+
+        });
         clientThread.detach(); // let the thread run, will use join() later with thread pool
     }
 }
 
 /**
  * Sends data to a client socket then closes it.
- * @param csocket_fd Socket file descriptor of a client socket
+ * @param csocket_fd - Socket file descriptor of a client socket
  * @result If sending data is a success, the message is sent. If there is an error, 
  *         the error msg is printed. Closes the socket upon success and failure.
  */
-void Server::handleClient(int csocket_fd) {
-    if(send(csocket_fd, "Hello World!\n", 13, 0) == SEND_ERR) {
-        perror("sever: send");
+OpResult Server::handleClient(int csocket_fd) {
+    ssize_t nbytes_sent = send(csocket_fd, MSG, MSG_SZ, 0);
+
+    if(nbytes_sent == SEND_ERR) {
+        close(csocket_fd);
+        return OpResult::FAILURE;
+    }
+    else if (MSG_SZ > 0 && nbytes_sent == 0) {
+        close(csocket_fd);
+        return OpResult::CONNECTION_CLOSED;
+    }
+    else if (nbytes_sent < MSG_SZ) {
+        close(csocket_fd);
+        return OpResult::PARTIAL_SEND;
     }
 
     close(csocket_fd);
+    return OpResult::SUCCESS;
 }
-
-/* Non-member functions */
 
 /**
  * Gets the IP address ptr from a sockaddr struct.
- * @param sa Ptr to a sockaddr struct
- * @return Ptr to the sin_addr (IPv4) or sin6_addr (IPv6) field
+ * @param sa - Ptr to a sockaddr struct
+ * @return - Ptr to the sin_addr (IPv4) or sin6_addr (IPv6) field
  */
 void* get_in_addr(struct sockaddr* sa) {
     if (sa->sa_family == AF_INET) {

@@ -13,6 +13,9 @@
 #define NO_MORE_SENDS       1
 #define NO_MORE_REC_OR_SEND 2
 
+#define MSG "Hello World!\n"
+#define MSG_SZ 13
+
 #include "server_exceptions.h"
 #include <iostream>
 #include <string.h>
@@ -31,6 +34,13 @@ using namespace std;
 
 void* get_in_addr(struct sockaddr* sa);
 
+enum class OpResult {
+    SUCCESS,
+    FAILURE,
+    PARTIAL_SEND,
+    CONNECTION_CLOSED
+};
+
 class Server {
     private:
         int listenSocket_fd;                // listener's socket descriptor
@@ -43,7 +53,7 @@ class Server {
         void Bind();
         void Listen();
         void Accept();
-        void handleClient(int csocket_fd);
+        OpResult handleClient(int csocket_fd);
     public:
         Server();
         ~Server();
