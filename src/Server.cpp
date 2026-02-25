@@ -115,7 +115,7 @@ void Server::Accept() {
     
     for (;;) {
         sin_size = sizeof(client_adr);
-        clientSocket_fd = accept(listenSocket_fd, (struct sockaddr*)&client_adr, &sin_size);
+        int clientSocket_fd = accept(listenSocket_fd, (struct sockaddr*)&client_adr, &sin_size);
 
         if (clientSocket_fd == SOCK_ERR) {
             perror("server: accept");
@@ -127,7 +127,7 @@ void Server::Accept() {
         cout << "server: got connection from " << s << endl;
 
         thread clientThread(&Server::handleClient, this, clientSocket_fd);
-        clientThread.detach(); // let the thread run, will use join later with thread pool
+        clientThread.detach(); // let the thread run, will use join() later with thread pool
     }
 }
 
