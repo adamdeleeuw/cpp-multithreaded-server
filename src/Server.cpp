@@ -1,4 +1,5 @@
 #include "../include/Server.h"
+#include "../include/log.h"
 using namespace std;
 
 /**
@@ -148,6 +149,7 @@ void Server::Accept() {
                     break;
                 case OpResult::CONNECTION_CLOSED:
                     perror("server: connection closed by client");
+                    break;
                 case OpResult::SUCCESS: break;
             }
 
