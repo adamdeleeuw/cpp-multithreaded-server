@@ -2,7 +2,6 @@
 using namespace std;
 
 /**
- * Default constructor: constructs a new TCP client instance.
  * @result Sets up a new client and initiates connection to server
  */
 Client::Client() : host(IP), serverinfo(nullptr), socket_fd(SOCK_ERR) {
@@ -11,7 +10,6 @@ Client::Client() : host(IP), serverinfo(nullptr), socket_fd(SOCK_ERR) {
 }
 
 /**
- * Destructor
  * @result Closes socket and cleans up address info data.
  */
 Client::~Client() {
@@ -26,8 +24,6 @@ Client::~Client() {
 void Client::Run() {
     Connect();
 }
-
-/* Private helper functions */
 
 /**
  * Sets necessary address info and retrieves server details.
@@ -71,7 +67,8 @@ void Client::Connect() {
             continue;
         }
 
-        inet_ntop(cr->ai_family, get_in_addr((struct sockaddr*)cr->ai_addr), s, sizeof(s)); // nail down understanding of this
+        // display host we are attempting to connect to
+        inet_ntop(cr->ai_family, get_in_addr((struct sockaddr*)cr->ai_addr), s, sizeof(s));
         cout << "client: trying to connect to host at " << s << endl;
 
         if (connect(socket_fd, cr->ai_addr, cr->ai_addrlen) == CONCT_ERR) {
@@ -89,8 +86,8 @@ void Client::Connect() {
         throw runtime_error("client: client failed to connect");
     }
 
-    // else, connect client (seems like duplicated logic?)
-    inet_ntop(cr->ai_family, get_in_addr((struct sockaddr*)cr->ai_addr), s, sizeof(s)); // nail down understanding of this
+    // display the host we ACTUALLY connected to
+    inet_ntop(cr->ai_family, get_in_addr((struct sockaddr*)cr->ai_addr), s, sizeof(s));
     cout << "client: client connected to " << s << endl;
 
     freeaddrinfo(serverinfo);
@@ -125,7 +122,6 @@ void Client::Receive() {
     exit(0); // end child process with success
 }
 
-/* Non-member functions */
 
 /**
  * Gets the IP address ptr from a sockaddr struct.
