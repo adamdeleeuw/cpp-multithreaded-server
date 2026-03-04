@@ -20,7 +20,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-/* non-member function */
 void* get_in_addr(struct sockaddr* sa);
 
 class Client { 

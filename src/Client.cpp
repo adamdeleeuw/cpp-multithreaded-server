@@ -112,7 +112,7 @@ void Client::Receive() {
     if (nbytes == 0) {
         logmsg(Log::WARN, "client: connection closed by server");
     } else{
-         buf[nbytes] = '\0';
+        buf[nbytes] = '\0';
         logmsg(Log::INFO, "client: received " + string(buf));
     }
 
