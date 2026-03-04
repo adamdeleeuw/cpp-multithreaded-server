@@ -1,4 +1,6 @@
 #include "../include/Client.h"
+#include "../include/log.h"
+#include "../include/server_exceptions.h"
 using namespace std;
 
 /**
@@ -35,7 +37,7 @@ void Client::Setup() {
 
     status = getaddrinfo(host, PORT, &hints, &serverinfo); // get all required info
     if (status != 0) {
-        throw runtime_error("getaddrinfo() errror: " + string(gai_strerror(status)));
+        throw SetupException("getaddrinfo() error: " + string(gai_strerror(status)));
     }
 }
 
@@ -56,23 +58,23 @@ void Client::setaddrinfo() {
  * @throws If no connection can be made to any hosts in serverinfo.
  */
 void Client::Connect() {
-    cout << "Looking for available hosts..." << endl;
+    logmsg(Log::INFO, "Looking for available hosts...");
     struct addrinfo* cr; // current result in the linked list
 
     for (cr = serverinfo; cr != nullptr; cr = cr->ai_next) {
         socket_fd = socket(cr->ai_family, cr->ai_socktype, cr->ai_protocol);
 
         if (socket_fd == SOCK_ERR) {
-            perror("client: socket");
+            logmsg(Log::ERROR, "client: socket", errno);
             continue;
         }
 
         // display host we are attempting to connect to
         inet_ntop(cr->ai_family, get_in_addr((struct sockaddr*)cr->ai_addr), s, sizeof(s));
-        cout << "client: trying to connect to host at " << s << endl;
+        logmsg(Log::INFO, "client: trying to connect to host at " + string(s));
 
         if (connect(socket_fd, cr->ai_addr, cr->ai_addrlen) == CONCT_ERR) {
-            perror("client: connect");
+            logmsg(Log::ERROR, "client: connect", errno);
             close(socket_fd);
             socket_fd = SOCK_ERR;
 
@@ -83,12 +85,12 @@ void Client::Connect() {
     }
 
     if (cr == nullptr) {
-        throw runtime_error("client: client failed to connect");
+        throw SetupException("client: failed to connect to any host");
     }
 
     // display the host we ACTUALLY connected to
     inet_ntop(cr->ai_family, get_in_addr((struct sockaddr*)cr->ai_addr), s, sizeof(s));
-    cout << "client: client connected to " << s << endl;
+    logmsg(Log::INFO, "client: connected to " + string(s));
 
     freeaddrinfo(serverinfo);
     serverinfo = nullptr;
@@ -103,18 +105,18 @@ void Client::Connect() {
 void Client::Receive() {
     nbytes = recv(socket_fd, buf, MAX_DATASIZE, 0);
     if (nbytes == RECV_ERR) {
-        perror("client: receive");
+        logmsg(Log::ERROR, "client: receive", errno);
         exit(1); // end child process with error code
     }
 
     if (nbytes == 0) {
-        cout << "client: connection closed by server" << endl;
+        logmsg(Log::WARN, "client: connection closed by server");
     } else{
          buf[nbytes] = '\0';
-        cout << "client: received " << buf << endl;
+        logmsg(Log::INFO, "client: received " + string(buf));
     }
 
-    cout << "Work done, connection closing" << endl;
+    logmsg(Log::INFO, "Work done, connection closing");
     
     close(socket_fd);
     socket_fd = SOCK_ERR;

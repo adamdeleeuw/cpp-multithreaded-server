@@ -109,17 +109,17 @@ void Server::Bind() {
  */
 void Server::Listen() {
     if ((listen(listenSocket_fd, BACKLOG)) == LISTEN_ERR) {
-        throw SetupException("sever: listen failed");
+        throw SetupException("server: listen failed");
     }
 
-    cout << "server: listening for connections..." << endl;
+    logmsg(Log::INFO, "server: listening for connections...");
 }
 
 /**
  * @result Waits for incoming client connections. If one is found, it is accepted then handled.
  */
 void Server::Accept() {
-    cout << "server: waiting for connections..." << endl;
+    logmsg(Log::INFO, "server: waiting for connections...");
     
     while (running) {
         struct sockaddr_storage client_adr;
@@ -127,7 +127,7 @@ void Server::Accept() {
         int clientSocket_fd = accept(listenSocket_fd, (struct sockaddr*)&client_adr, &sin_size);
 
         if (clientSocket_fd == SOCK_ERR) {
-            perror("server: accept");
+            logmsg(Log::ERROR, "server: accept", errno);
             continue;
         }
 
@@ -135,20 +135,23 @@ void Server::Accept() {
 
         // converts network address structure to a string of characters
         inet_ntop(client_adr.ss_family, get_in_addr((struct sockaddr*)&client_adr), s, sizeof(s));
-        cout << "server: got connection from " << s << endl;
+        logmsg(Log::INFO, "server: got connection from " + string(s));
+
+        // NOTE: The lambda capturing 'this' may lead to data races/undefined behaviour if Server
+        // closes before a detached client thread terminates
 
         thread clientThread([this, clientSocket_fd]() {
             OpResult result = handleClient(clientSocket_fd);
 
             switch (result) {
                 case OpResult::FAILURE:
-                    perror("server: client handler failed to send data");
+                    logmsg(Log::ERROR, "server: client handler failed to send data");
                     break;
                 case OpResult::PARTIAL_SEND:
-                    perror("server: incomplete data sent to client");
+                    logmsg(Log::WARN, "server: incomplete data sent to client");
                     break;
                 case OpResult::CONNECTION_CLOSED:
-                    perror("server: connection closed by client");
+                    logmsg(Log::WARN, "server: connection closed by client");
                     break;
                 case OpResult::SUCCESS: break;
             }
